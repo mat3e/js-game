@@ -1,0 +1,19 @@
+{
+  "name": "game",
+  "version": "0.0.1",
+  "description": "Simple HTML game",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "npm run build && node server",
+    "build": "tsc",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.7",
+    "jest": "^29.7.0",
+    "typescript": "^5.2.2",
+    "ts-jest": "^29.1.1"
+  },
+  "author": "mat3e",
+  "license": "MIT"
+}
