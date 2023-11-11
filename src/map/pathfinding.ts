@@ -1,39 +1,47 @@
 import {DiagonalGraph, Graph, Point, unsafeCost} from "./graph";
 import {BinaryHeap} from "./heap";
 
-type Options = {
+type PathfindingOptions = {
     allowDiagonal?: boolean;
     heuristic?: Heuristic;
 }
 
+type FindOptions = {
+    closest?: boolean;
+}
+
 export class Pathfinding {
     #graph: Graph;
-    #heuristic: Heuristic;
+    readonly #heuristic: Heuristic;
 
     constructor(map: number[][], {
         allowDiagonal = false,
         heuristic = heuristicFor(allowDiagonal)
-    }: Options = {}) {
+    }: PathfindingOptions = {}) {
         this.#graph = allowDiagonal ? new DiagonalGraph(map) : new Graph(map);
         this.#heuristic = heuristic;
     }
 
-    find(from: Point, to: Point): Point[] {
+    find(from: Point, to: Point, {closest: searchingForClosest}: FindOptions = {}): Point[] {
         const convertedPoints: Map<Point, PathPoint> = new Map();
         const openSet = new BinaryHeap<PathPoint>(({fScore}) => fScore);
-        openSet.push(new PathPoint(from, this.#heuristic(from, to)));
+        let closestPoint: PathPoint = this.#toPathPoint(this.#graph.get(from)!, to, convertedPoints);
+        openSet.push(closestPoint);
         while (openSet.length > 0) {
-            const current = openSet.pop()!;
+            const current: PathPoint = openSet.pop()!;
             if (current.point.x === to.x && current.point.y === to.y) {
                 return this.#reconstructPath(current);
             }
             current.visit();
             this.#graph.neighborsOf(current.point).forEach(neighbor => {
-                const neighborPathPoint = this.#convertPoint(neighbor, convertedPoints);
+                const neighborPathPoint: PathPoint = this.#toPathPoint(neighbor, to, convertedPoints);
                 if (neighborPathPoint.visited) {
                     return;
                 }
-                if (neighborPathPoint.updatedScoreFrom(current)) {
+                if (neighborPathPoint.updatesScoreFrom(current)) {
+                    if (searchingForClosest) {
+                        closestPoint = PathPoint.closest(closestPoint, neighborPathPoint);
+                    }
                     if (openSet.has(neighborPathPoint)) {
                         openSet.update(neighborPathPoint);
                         return;
@@ -42,23 +50,23 @@ export class Pathfinding {
                 }
             });
         }
-        return [];
+        return searchingForClosest ? this.#reconstructPath(closestPoint) : [];
     }
 
     #reconstructPath(target: PathPoint): Point[] {
-        const path = [target.point];
-        while (target.parent && target.parent.parent) { // skip starting point
-            target = target.parent;
-            path.unshift(target.point);
+        const path: Point[] = [target.point];
+        while (target.previous && target.previous.previous) { // skip starting point
+            target = target.previous;
+            path.push(target.point);
         }
-        return path;
+        return path.reverse();
     }
 
-    #convertPoint(point: Point, alreadyConverted: Map<Point, PathPoint>): PathPoint {
+    #toPathPoint(point: Point, target: Point, alreadyConverted: Map<Point, PathPoint>): PathPoint {
         if (alreadyConverted.has(point)) {
             return alreadyConverted.get(point)!;
         }
-        const convertedPoint = new PathPoint(point, this.#heuristic(point, point));
+        const convertedPoint = new PathPoint(point, this.#heuristic(point, target));
         alreadyConverted.set(point, convertedPoint);
         return convertedPoint;
     }
@@ -69,19 +77,26 @@ export class Pathfinding {
 }
 
 class PathPoint {
-    /** Already processed with neighbors. */
+    static closest(first: PathPoint, second: PathPoint): PathPoint {
+        if (first.#h < second.#h || (first.#h === second.#h && first.#gScore < second.#gScore)) {
+            return first;
+        }
+        return second;
+    }
+
+    /** Already processed (neighbors checked, etc.). */
     #visited: boolean = false;
     /** Cheapest currently known cost from start to this point. */
     #gScore: number = 0;
-    /** Heuristic value. */
-    #h: number = 0;
-    #parent?: PathPoint;
+    /** Heuristic value (estimated distance to the goal). */
+    readonly #h: number = 0;
+    #previous?: PathPoint;
 
     constructor(readonly point: Point, calculatedHeuristic: number) {
         this.#h = calculatedHeuristic;
     }
 
-    visit() {
+    visit(): void {
         this.#visited = true;
     }
 
@@ -89,13 +104,20 @@ class PathPoint {
         return this.#visited;
     }
 
-    updatedScoreFrom(neighbor: PathPoint): boolean {
+    /**
+     * Checks if the provided neighbor results in a better path to this point.
+     * If so, updates the score and the reference to the previous point.
+     *
+     * @param neighbor new point from where we can reach this point
+     * @returns true if score was updated, false otherwise
+     */
+    updatesScoreFrom(neighbor: PathPoint): boolean {
         const gScore = neighbor.#gScore + unsafeCost(neighbor.point, this.point);
         if (this.#gScore && gScore >= this.#gScore) {
             return false;
         }
         this.#gScore = gScore;
-        this.#parent = neighbor;
+        this.#previous = neighbor;
         return true;
     }
 
@@ -103,8 +125,8 @@ class PathPoint {
         return this.#gScore + this.#h;
     }
 
-    get parent(): PathPoint | undefined {
-        return this.#parent;
+    get previous(): PathPoint | undefined {
+        return this.#previous;
     }
 }
 

@@ -103,7 +103,7 @@ describe('Pathfinding', () => {
         // then
         expect(result).toHaveLength(5);
         expect(result).toEqual(arrayContaining<Point>(
-            [{x: 1, y: 0}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 3, y: 2}]));
+            [{x: 1, y: 0}, {x: 2, y: 0}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 3, y: 2}]));
     });
 
     it('works with complex paths with diagonal support', () => {
@@ -119,7 +119,7 @@ describe('Pathfinding', () => {
 
         // then
         expect(result).toHaveLength(3);
-        expect(result).toEqual(arrayContaining<Point>([{x: 1, y: 0}, {x: 2, y: 1}, {x: 3, y: 2}]));
+        expect(result).toEqual(arrayContaining<Point>([{x: 1, y: 1}, {x: 2, y: 1}, {x: 3, y: 2}]));
     });
 
     it('supports multiple runs', () => {
@@ -131,15 +131,52 @@ describe('Pathfinding', () => {
         ]);
 
         // when
-        const result1 = pathfinding.find({x: 0, y: 0}, {x: 3, y: 2});
+        const result = pathfinding.find({x: 0, y: 0}, {x: 3, y: 2});
         const result2 = pathfinding.find({x: 0, y: 0}, {x: 3, y: 2});
         const result3 = pathfinding.find({x: 3, y: 2}, {x: 0, y: 0});
 
         // then
-        expect(result1).toEqual(arrayContaining<Point>(
+        expect(result).toEqual(arrayContaining<Point>(
             [{x: 1, y: 0}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 3, y: 2}]));
-        expect(result1).toEqual(result2);
+        expect(result).toEqual(result2);
         expect(result3).toEqual(arrayContaining<Point>(
             [{x: 2, y: 2}, {x: 2, y: 1}, {x: 1, y: 1}, {x: 1, y: 0}, {x: 0, y: 0}]));
+    });
+
+    it('supports finding path to the closest point', () => {
+        // given
+        const pathfinding = new Pathfinding([
+            [1, 1, 1, 1],
+            [0, 1, 1, 0],
+            [0, 0, 1, 1],
+        ]);
+
+        // when
+        const result = pathfinding.find({x: 0, y: 0}, {x: 1, y: 2}, {closest: true});
+        // no moves - goal is 2 steps down and from (1,1) it'd be 1 left and 1 down, and you'd need to get to (1,1)
+        const edgeCaseResult = pathfinding.find({x: 0, y: 0}, {x: 0, y: 2}, {closest: true});
+
+        // then
+        expect(result).toHaveLength(2);
+        expect(result).toEqual(arrayContaining<Point>([{x: 1, y: 0}, {x: 1, y: 1}]));
+        // and
+        expect(edgeCaseResult).toHaveLength(1);
+        expect(edgeCaseResult).toEqual(arrayContaining<Point>([{x: 0, y: 0}]));
+    });
+
+    it('supports closest and diagonal', () => {
+        // given
+        const pathfinding = new Pathfinding([
+            [1, 1, 1, 1],
+            [0, 1, 1, 0],
+            [0, 0, 1, 1],
+        ], {allowDiagonal: true});
+
+        // when
+        const result = pathfinding.find({x: 0, y: 0}, {x: 0, y: 2}, {closest: true});
+
+        // then
+        expect(result).toHaveLength(1);
+        expect(result).toEqual(arrayContaining<Point>([{x: 1, y: 1}]));
     });
 });
