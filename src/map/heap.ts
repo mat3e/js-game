@@ -1,14 +1,35 @@
 export class BinaryHeap<T> {
     #elements: T[] = [];
     #scores: Map<T, number> = new Map();
-
-    // todo: standard binary heap based priority queue does not directly support the operation of searching for one of its elements, but it can be augmented with a hash table that maps elements to their position in the heap, allowing this decrease-priority operation to be performed in logarithmic time
+    #indices: Map<T, number> = new Map();
 
     constructor(private readonly score: (element: T) => number) {
     }
 
     get length() {
         return this.#elements.length;
+    }
+
+    has(potentialElement: T): boolean {
+        return this.#scores.has(potentialElement);
+    }
+
+    update(element: T) {
+        if (!this.has(element)) {
+            return;
+        }
+        const oldScore = this.#scores.get(element)!;
+        const newScore = this.score(element);
+        if (oldScore === newScore) {
+            return;
+        }
+        this.#scores.set(element, newScore);
+        const oldIndex = this.#indices.get(element)!;
+        if (oldScore < newScore) {
+            this.#sinkDown(oldIndex);
+            return;
+        }
+        this.#bubbleUp(oldIndex);
     }
 
     push(element: T) {
@@ -33,17 +54,20 @@ export class BinaryHeap<T> {
             const parentIndex = Math.floor((fromIndex + 1) >> 1) - 1;
             const parentElement = this.#elements[parentIndex]!;
             if (this.#scores.get(bubblingElement)! >= this.#scores.get(parentElement)!) {
+                this.#indices.set(bubblingElement, fromIndex);
                 break;
             }
             this.#elements[parentIndex] = bubblingElement;
             this.#elements[fromIndex] = parentElement;
             fromIndex = parentIndex;
         }
+        this.#indices.set(bubblingElement, fromIndex);
     }
 
     #sinkDown(fromIndex: number) {
         const max = this.#elements.length;
         const sinkingElement = this.#elements[fromIndex]!;
+        this.#indices.set(sinkingElement, fromIndex);
         while (true) {
             const rightChildIndex = (fromIndex + 1) << 1;
             const leftChildIndex = rightChildIndex - 1;
@@ -63,8 +87,11 @@ export class BinaryHeap<T> {
             if (swapIndex === -1) {
                 break;
             }
-            this.#elements[fromIndex] = this.#elements[swapIndex]!;
+            const toSwap = this.#elements[swapIndex]!;
+            this.#elements[fromIndex] = toSwap;
+            this.#indices.set(toSwap, fromIndex);
             this.#elements[swapIndex] = sinkingElement;
+            this.#indices.set(sinkingElement, swapIndex);
             fromIndex = swapIndex;
         }
     }
