@@ -57,14 +57,17 @@ export function unsafeCost(from: Point, to: Point): number {
 }
 
 abstract class GraphPoint implements Point {
-    constructor(readonly x: number, readonly y: number, protected readonly weight: number = 1) {
+    readonly #weight: number;
+
+    constructor(readonly x: number, readonly y: number, weight: number = 1) {
+        this.#weight = weight;
     }
 
     abstract get potentialNeighbors(): Set<Point>;
 
     // should multiply by x and y differences
     costFrom({}: Point): number {
-        return this.weight;
+        return this.#weight;
     }
 
     toString(): string {
@@ -102,10 +105,11 @@ class DiagonalNeighborsPoint extends GraphPoint {
     }
 
     // should multiply by x and y differences
-    override costFrom({x, y}: Point): number {
-        if (x !== this.x && y !== this.y) {
-            return this.weight * Math.SQRT2;
+    override costFrom(target: Point): number {
+        const weight = super.costFrom(target);
+        if (target.x !== this.x && target.y !== this.y) {
+            return weight * Math.SQRT2;
         }
-        return this.weight;
+        return weight;
     }
 }

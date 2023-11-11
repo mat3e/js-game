@@ -1,7 +1,5 @@
 import {DiagonalGraph, Graph, unsafeCost} from "./graph";
 
-const {objectContaining} = expect;
-
 describe('Graph', () => {
     it('treats positive number as a valid neighbor and skips neighbors for 0', () => {
         const graph = new Graph([
@@ -17,16 +15,16 @@ describe('Graph', () => {
 
         // then
         expect(zeroZeroNeighbors.size).toBe(1);
-        expect(zeroZeroNeighbors).toContainEqual(objectContaining({x: 0, y: 1}));
+        expect(zeroZeroNeighbors).toContainEqual({x: 0, y: 1});
         // and
         expect(oneZeroNeighbors.size).toBe(0);
         // and
         expect(zeroOneNeighbors.size).toBe(2)
-        expect(zeroOneNeighbors).toContainEqual(objectContaining({x: 0, y: 0}));
-        expect(zeroOneNeighbors).toContainEqual(objectContaining({x: 1, y: 1}));
+        expect(zeroOneNeighbors).toContainEqual({x: 0, y: 0});
+        expect(zeroOneNeighbors).toContainEqual({x: 1, y: 1});
         // and
         expect(oneOneNeighbors.size).toBe(1);
-        expect(oneOneNeighbors).toContainEqual(objectContaining({x: 0, y: 1}));
+        expect(oneOneNeighbors).toContainEqual({x: 0, y: 1});
     });
 
     it('is just Graph not DiagonalGraph', () => {
@@ -48,11 +46,11 @@ describe('DiagonalGraph', () => {
 
         // then
         expect(oneOneNeighbors.size).toBe(5);
-        expect(oneOneNeighbors).toContainEqual(objectContaining({x: 0, y: 0}));
-        expect(oneOneNeighbors).toContainEqual(objectContaining({x: 0, y: 1}));
-        expect(oneOneNeighbors).toContainEqual(objectContaining({x: 0, y: 1}));
-        expect(oneOneNeighbors).toContainEqual(objectContaining({x: 2, y: 1}));
-        expect(oneOneNeighbors).toContainEqual(objectContaining({x: 2, y: 2}));
+        expect(oneOneNeighbors).toContainEqual({x: 0, y: 0});
+        expect(oneOneNeighbors).toContainEqual({x: 0, y: 1});
+        expect(oneOneNeighbors).toContainEqual({x: 0, y: 1});
+        expect(oneOneNeighbors).toContainEqual({x: 2, y: 1});
+        expect(oneOneNeighbors).toContainEqual({x: 2, y: 2});
     });
 
     it('is Graph and DiagonalGraph', () => {

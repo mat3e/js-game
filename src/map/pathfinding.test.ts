@@ -1,7 +1,7 @@
 import {Pathfinding} from './pathfinding';
 import {Point} from "./graph";
 
-const {arrayContaining, objectContaining} = expect;
+const {arrayContaining} = expect;
 
 describe('Pathfinding', () => {
     it('is created from array without diagonal support by default', () => {
@@ -39,7 +39,7 @@ describe('Pathfinding', () => {
         const result = pathfinding.find({x: 0, y: 0}, {x: source.length - 1, y: 0});
 
         // then
-        expect(result).toEqual(arrayContaining<Point>(expected.map(({x, y}) => objectContaining({x, y}))));
+        expect(result).toEqual(arrayContaining<Point>(expected));
     });
 
     it.each([
@@ -64,7 +64,7 @@ describe('Pathfinding', () => {
         const result = pathfinding.find({x: 0, y: 0}, {x: 0, y: source.length - 1});
 
         // then
-        expect(result).toEqual(arrayContaining<Point>(expected.map(({x, y}) => objectContaining({x, y}))));
+        expect(result).toEqual(arrayContaining<Point>(expected));
     });
 
     it.each`
@@ -86,7 +86,7 @@ describe('Pathfinding', () => {
 
         // then
         expect(result).toHaveLength(2);
-        expect(result).toEqual(arrayContaining<Point>(expectedPath.map(({x, y}) => objectContaining({x, y}))));
+        expect(result).toEqual(arrayContaining<Point>(expectedPath));
     });
 
     it('works with complex paths', () => {
@@ -102,13 +102,8 @@ describe('Pathfinding', () => {
 
         // then
         expect(result).toHaveLength(5);
-        expect(result).toEqual(arrayContaining<Point>([
-            objectContaining({x: 1, y: 0}),
-            objectContaining({x: 1, y: 1}),
-            objectContaining({x: 2, y: 1}),
-            objectContaining({x: 2, y: 2}),
-            objectContaining({x: 3, y: 2}),
-        ]));
+        expect(result).toEqual(arrayContaining<Point>(
+            [{x: 1, y: 0}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 3, y: 2}]));
     });
 
     it('works with complex paths with diagonal support', () => {
@@ -124,11 +119,7 @@ describe('Pathfinding', () => {
 
         // then
         expect(result).toHaveLength(3);
-        expect(result).toEqual(arrayContaining<Point>([
-            objectContaining({x: 1, y: 0}),
-            objectContaining({x: 2, y: 1}),
-            objectContaining({x: 3, y: 2}),
-        ]));
+        expect(result).toEqual(arrayContaining<Point>([{x: 1, y: 0}, {x: 2, y: 1}, {x: 3, y: 2}]));
     });
 
     it('supports multiple runs', () => {
@@ -145,20 +136,10 @@ describe('Pathfinding', () => {
         const result3 = pathfinding.find({x: 3, y: 2}, {x: 0, y: 0});
 
         // then
-        expect(result1).toEqual(arrayContaining<Point>([
-            objectContaining({x: 1, y: 0}),
-            objectContaining({x: 1, y: 1}),
-            objectContaining({x: 2, y: 1}),
-            objectContaining({x: 2, y: 2}),
-            objectContaining({x: 3, y: 2}),
-        ]));
+        expect(result1).toEqual(arrayContaining<Point>(
+            [{x: 1, y: 0}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 3, y: 2}]));
         expect(result1).toEqual(result2);
-        expect(result3).toEqual(arrayContaining<Point>([
-            objectContaining({x: 2, y: 2}),
-            objectContaining({x: 2, y: 1}),
-            objectContaining({x: 1, y: 1}),
-            objectContaining({x: 1, y: 0}),
-            objectContaining({x: 0, y: 0}),
-        ]));
+        expect(result3).toEqual(arrayContaining<Point>(
+            [{x: 2, y: 2}, {x: 2, y: 1}, {x: 1, y: 1}, {x: 1, y: 0}, {x: 0, y: 0}]));
     });
 });
