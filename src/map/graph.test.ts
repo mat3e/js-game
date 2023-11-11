@@ -67,8 +67,8 @@ describe('unsafeCost', () => {
     it('returns weight ignoring the distance', () => {
         // given
         const simpleGraph = new Graph([[1, 2, 3, 4, 5]]);
-        const weight2 = [...simpleGraph.neighborsOf({x: 0, y: 0})][0]!;
-        const weight4 = [...simpleGraph.neighborsOf({x: 4, y: 0})][0]!;
+        const weight2 = simpleGraph.get({x: 1, y: 0})!;
+        const weight4 = simpleGraph.get({x: 3, y: 0})!;
 
         expect(unsafeCost({x: 0, y: 0}, weight2)).toBe(2);
         expect(unsafeCost({x: 0, y: 0}, weight4)).toBe(4);
@@ -84,9 +84,9 @@ describe('unsafeCost', () => {
             [0, 0, 2, 0, 0],
             [0, 4, 0, 3, 5],
         ]);
-        const weight1 = [...simpleGraph.neighborsOf({x: 0, y: 0})][0]!;
-        const weight2 = [...simpleGraph.neighborsOf({x: 1, y: 2})][0]!;
-        const weight3 = [...simpleGraph.neighborsOf({x: 4, y: 2})][0]!;
+        const weight1 = simpleGraph.get({x: 1, y: 0})!;
+        const weight2 = simpleGraph.get({x: 2, y: 1})!;
+        const weight3 = simpleGraph.get({x: 3, y: 2})!;
 
         expect(unsafeCost({x: 0, y: 0}, weight1)).toBe(1);
         expect(unsafeCost({x: 1, y: 1}, weight2)).toBe(2);

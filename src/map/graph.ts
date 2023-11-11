@@ -19,6 +19,10 @@ export class Graph {
         }));
     }
 
+    get(point: Point) {
+        return this.#originalPoints.get(toString(point));
+    }
+
     neighborsOf(point: Point): Set<Point> {
         return new Set([...this.#adjacency.get(toString(point)) ?? []]
             .map(neighbor => this.#originalPoints.get(neighbor)!));
