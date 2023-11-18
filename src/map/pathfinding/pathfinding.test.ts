@@ -68,16 +68,19 @@ describe('Pathfinding', () => {
     });
 
     it.each`
-    graph               | expectedPath
-    ${[ //              |
-        [1, 1], //      |
-        [2, 1], //      |
-    ]}                  | ${[{x: 1, y: 0}, {x: 1, y: 1}]}
-        ${[ //          |
-        [1, 2], //      |
-        [1, 1], //      |
-    ]}                  | ${[{x: 0, y: 1}, {x: 1, y: 1}]}
-    `('supports basic weighting (%p)', ({graph, expectedPath}: { graph: number[][], expectedPath: Point[] }) => {
+    graph               | expectedPath                    | description
+    ${[ //              |                                 |
+        [1, 1], //      |                                 |
+        [2, 1], //      |                                 |
+    ]}                  | ${[{x: 1, y: 0}, {x: 1, y: 1}]} | ${'right-down to omit 2'}
+    ${[ //              |                                 |
+        [1, 2], //      |                                 |
+        [1, 1], //      |                                 |
+    ]}                  | ${[{x: 0, y: 1}, {x: 1, y: 1}]} | ${'down-right to omit 2'}
+    `('supports basic weighting ($description)', ({graph, expectedPath}: {
+        graph: number[][],
+        expectedPath: Point[]
+    }) => {
         // given
         const pathfinding = new Pathfinding(graph);
 
