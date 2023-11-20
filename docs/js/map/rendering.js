@@ -1,10 +1,15 @@
 class Positioned {
+    /** Left pixel. */
     x;
+    /** Top pixel. */
     y;
     constructor(...args) {
         const { x = NaN, y = NaN } = args.filter(this.#satisfiesPositioned)[0] ?? {};
         this.x = x;
         this.y = y;
+    }
+    next() {
+        // no state changes
     }
     get valid() {
         return !isNaN(this.x) && !isNaN(this.y);
@@ -52,10 +57,123 @@ export function interacting(Base) {
         #corners() {
             return [[this.x, this.y], [this.x + this.width, this.y], [this.x + this.width, this.y + this.height], [this.x, this.y + this.height]];
         }
-        #satisfiesInteracting(args) {
-            return typeof args.x === 'number' && typeof args.y === 'number'
-                && typeof args.width === 'number' && typeof args.height === 'number'
-                && (args.inParent === undefined || typeof args.inParent.width === 'number' && typeof args.inParent.height === 'number');
+        #satisfiesInteracting(arg) {
+            return typeof arg.x === 'number' && typeof arg.y === 'number'
+                && typeof arg.width === 'number' && typeof arg.height === 'number'
+                && (arg.inParent === undefined || typeof arg.inParent.width === 'number' && typeof arg.inParent.height === 'number');
         }
     };
 }
+export function moving(Base) {
+    return class extends (Base ?? Positioned) {
+        x;
+        y;
+        #direction;
+        #path = [];
+        #deltaX = Delta.of(0);
+        #deltaY = Delta.of(0);
+        #moving = false;
+        #speed;
+        constructor(...args) {
+            super(args);
+            const { x = NaN, y = NaN, direction = 'S', speed = 1 } = args.filter(this.#satisfiesMoving)[0] ?? {};
+            [this.x, this.y, this.#direction, this.#speed] = [x, y, direction, speed];
+        }
+        get currentDirection() {
+            return this.#direction;
+        }
+        get inMove() {
+            return this.#moving;
+        }
+        lookAt({ x = this.x, y = this.y } = { x: this.x, y: this.y }) {
+            switch (true) {
+                case (this.x) > x:
+                    this.#direction = 'W';
+                    break;
+                case (this.x) < x:
+                    this.#direction = 'E';
+                    break;
+                case (this.y) > y:
+                    this.#direction = 'N';
+                    break;
+                case (this.y) < y:
+                    this.#direction = 'S';
+                    break;
+            }
+        }
+        follow(path) {
+            this.#path = path.reverse();
+            this.#deltas = this.#path.pop();
+            this.#moving = true;
+        }
+        next() {
+            super.next();
+            if (!this.#moving) {
+                return;
+            }
+            if (this.#notThereYet) {
+                this.#move();
+            }
+            if (this.#atTarget) {
+                this.#moving = false;
+            }
+        }
+        #move() {
+            if (!this.#deltaX.done) {
+                this.x += this.#deltaX.next();
+            }
+            else if (!this.#deltaY.done) {
+                this.y += this.#deltaY.next();
+            }
+            if (this.#atTarget) {
+                this.#deltas = this.#path.pop();
+            }
+        }
+        set #deltas(point) {
+            const { x = this.x, y = this.y } = point ?? { x: this.x, y: this.y };
+            this.lookAt({ x, y });
+            this.#deltaX = Delta.of(this.x - x, this.#speed);
+            this.#deltaY = Delta.of(this.y - y, this.#speed);
+        }
+        get #notThereYet() {
+            return !this.#atTarget;
+        }
+        get #atTarget() {
+            return this.#deltaX.done && this.#deltaY.done;
+        }
+        #satisfiesMoving(arg) {
+            return typeof arg.x === 'number' && typeof arg.y === 'number'
+                && (arg.direction === undefined || typeof arg.direction === 'string')
+                && (arg.speed === undefined || typeof arg.speed === 'number');
+        }
+    };
+}
+class Delta {
+    static of(diff, increment = 1) {
+        return diff > 0 ? new Delta(diff, -1, increment) : new Delta(diff, 1, increment);
+    }
+    #diff;
+    #change;
+    #sign;
+    constructor(diff, sign, change = 1) {
+        this.#diff = diff;
+        this.#change = change;
+        this.#sign = sign;
+    }
+    next() {
+        const newDelta = this.#diff + this.#sign * this.#change;
+        if (this.#crossedZero(newDelta)) {
+            this.#diff = 0;
+            return this.#change - this.#sign * newDelta;
+        }
+        this.#diff = newDelta;
+        return this.#change;
+    }
+    get done() {
+        return this.#diff === 0;
+    }
+    #crossedZero(newDelta) {
+        return this.#sign * newDelta > 0;
+    }
+}
+// type DiagonalDirection = 'NE' | 'NW' | 'SE' | 'SW';

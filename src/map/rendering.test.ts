@@ -1,6 +1,7 @@
-import {interacting} from "./rendering";
+import {Point} from "./pathfinding/index";
+import {interacting, moving} from "./rendering";
 
-describe('Colliding', () => {
+describe('Interacting', () => {
     describe('contains', () => {
         it('takes parent dimensions by default', () => {
             // given
@@ -107,3 +108,140 @@ describe('Colliding', () => {
         });
     });
 });
+
+describe('Moving', () => {
+    describe('currentDirection', () => {
+        it('is south by default', () => {
+            // given
+            const tested = new (moving())({x: 0, y: 0});
+
+            expect(tested.currentDirection).toBe('S');
+        });
+
+        it('takes from constructor', () => {
+            // given
+            const tested = new (moving())({x: 0, y: 0, direction: 'E'});
+
+            expect(tested.currentDirection).toBe('E');
+        });
+    });
+
+    describe('lookAt', () => {
+        it.each`
+        point           | expectedDirection
+        ${{x: 2, y: 1}} | ${'E'}
+        ${{x: 0, y: 1}} | ${'W'}
+        ${{x: 1, y: 0}} | ${'N'}
+        ${{x: 1, y: 2}} | ${'S'}
+        ${{x: 2, y: 2}} | ${'E'}
+        ${{x: 2, y: 0}} | ${'E'}
+        ${{x: 0, y: 0}} | ${'W'}
+        ${{x: 0, y: 2}} | ${'W'}
+        `('rotates to point $point => $expectedDirection', ({point, expectedDirection}: {
+            point: Point,
+            expectedDirection: string
+        }) => {
+            // given
+            const tested = new (moving())({x: 1, y: 1});
+
+            // when
+            tested.lookAt(point);
+
+            // then
+            expect(tested.currentDirection).toBe(expectedDirection);
+            expect(tested.x).toBe(1);
+            expect(tested.y).toBe(1);
+        });
+
+        it('does not change anything for undefined point', () => {
+            // given
+            const tested = new (moving())({x: 1, y: 1, direction: 'E'});
+
+            // when
+            // @ts-ignore
+            tested.lookAt();
+
+            // then
+            expect(tested.currentDirection).toBe('E');
+        });
+    });
+
+    describe('follow', () => {
+        it('goes to the provided point', () => {
+            // given
+            const tested = new (moving())({x: 1, y: 1});
+
+            // when
+            tested.follow([{x: 2, y: 1}]);
+            let iterations = 0;
+            while (tested.inMove) {
+                tested.next();
+                ++iterations;
+            }
+
+            // then
+            expect(tested.y).toBe(1);
+            expect(tested.x).toBe(2);
+            expect(iterations).toBe(1);
+        });
+
+        it('goes to the point far away', () => {
+            // given
+            const tested = new (moving())({x: 0, y: 0});
+
+            // when
+            tested.follow([{x: 32, y: 32}]);
+            let iterations = 0;
+            while (tested.inMove) {
+                tested.next();
+                ++iterations;
+            }
+
+            // then
+            expect(tested.y).toBe(32);
+            expect(tested.x).toBe(32);
+            expect(iterations).toBe(64);
+        });
+
+        it('adjusts speed to achieve the point', () => {
+            // given
+            const tested = new (moving())({x: 0, y: 0, speed: 5});
+
+            // when
+            tested.follow([{x: 32, y: 0}]);
+            let iterations = 0;
+            while (tested.inMove) {
+                tested.next();
+                ++iterations;
+            }
+
+            // then
+            expect(tested.y).toBe(0);
+            expect(tested.x).toBe(32);
+            expect(iterations).toBe(7);
+        });
+
+        it('goes through all the points', () => {
+        });
+    });
+});
+
+describe('Moving & Interacting', () => {
+    it('interacts after moving', () => {
+    });
+});
+
+/*test('negative delta returns until target', () => {
+    const dx = Delta.of(1 - 10, 5);
+    expect(dx.next).toBe(5);
+    expect(dx.next).toBe(4);
+    expect(dx.done).toBe(true);
+});
+
+test('positive delta returns until target', () => {
+    const dx = Delta.of(14 - 1, 5);
+    expect(dx.next).toBe(5);
+    expect(dx.next).toBe(5);
+    expect(dx.next).toBe(3);
+    expect(dx.done).toBe(true);
+});*/

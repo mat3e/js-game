@@ -1,13 +1,26 @@
 import {Point} from "./pathfinding/index";
 
-abstract class Positioned {
+/**
+ * Allows transiting to the next frame.
+ */
+interface WithFrames {
+    next(): void;
+}
+
+class Positioned implements WithFrames {
+    /** Left pixel. */
     readonly x: number;
+    /** Top pixel. */
     readonly y: number;
 
     protected constructor(...args: any[]) {
         const {x = NaN, y = NaN} = args.filter(this.#satisfiesPositioned)[0] ?? {};
         this.x = x;
         this.y = y;
+    }
+
+    next(): void {
+        // no state changes
     }
 
     get valid(): boolean {
@@ -21,7 +34,7 @@ abstract class Positioned {
 
 const DEFAULT_PX = 32;
 
-export function interacting<TBase extends typeof Positioned>(Base?: TBase): new (...args: any[]) => Interacting {
+export function interacting<TBase extends typeof Positioned>(Base?: TBase): new (state: InteractingState) => (Interacting & Positioned) {
     return class extends (Base ?? Positioned) implements Interacting {
         override readonly x: number;
         override readonly y: number;
@@ -71,10 +84,10 @@ export function interacting<TBase extends typeof Positioned>(Base?: TBase): new 
             return [[this.x, this.y], [this.x + this.width, this.y], [this.x + this.width, this.y + this.height], [this.x, this.y + this.height]];
         }
 
-        #satisfiesInteracting(args: any): args is InteractingState {
-            return typeof args.x === 'number' && typeof args.y === 'number'
-                && typeof args.width === 'number' && typeof args.height === 'number'
-                && (args.inParent === undefined || typeof args.inParent.width === 'number' && typeof args.inParent.height === 'number');
+        #satisfiesInteracting(arg: any): arg is InteractingState {
+            return typeof arg.x === 'number' && typeof arg.y === 'number'
+                && typeof arg.width === 'number' && typeof arg.height === 'number'
+                && (arg.inParent === undefined || typeof arg.inParent.width === 'number' && typeof arg.inParent.height === 'number');
         }
     }
 }
@@ -96,3 +109,154 @@ type TwoDimensional = {
     width: number;
     height: number;
 }
+
+export function moving<TBase extends typeof Positioned>(Base?: TBase): new (state: MovingState) => (Moving & Positioned) {
+    return class extends (Base ?? Positioned) implements Moving {
+        override x: number;
+        override y: number;
+        #direction: Direction;
+        #path: Point[] = [];
+        #deltaX = Delta.of(0);
+        #deltaY = Delta.of(0);
+        #moving: boolean = false;
+        #speed: number;
+
+        constructor(...args: any[]) {
+            super(args);
+            const {
+                x = NaN,
+                y = NaN,
+                direction = 'S',
+                speed = 1
+            } = args.filter(this.#satisfiesMoving)[0] ?? {};
+            [this.x, this.y, this.#direction, this.#speed] = [x, y, direction, speed];
+        }
+
+        get currentDirection(): Direction {
+            return this.#direction;
+        }
+
+        get inMove(): boolean {
+            return this.#moving;
+        }
+
+        lookAt({x = this.x, y = this.y}: Point = {x: this.x, y: this.y}): void {
+            switch (true) {
+                case (this.x) > x:
+                    this.#direction = 'W';
+                    break;
+                case (this.x) < x:
+                    this.#direction = 'E';
+                    break;
+                case (this.y) > y:
+                    this.#direction = 'N';
+                    break;
+                case (this.y) < y:
+                    this.#direction = 'S';
+                    break;
+            }
+        }
+
+        follow(path: Point[]): void {
+            this.#path = path.reverse();
+            this.#deltas = this.#path.pop();
+            this.#moving = true;
+        }
+
+        override next(): void {
+            super.next();
+            if (!this.#moving) {
+                return;
+            }
+            if (this.#notThereYet) {
+                this.#move();
+            }
+            if (this.#atTarget) {
+                this.#moving = false;
+            }
+        }
+
+        #move() {
+            if (!this.#deltaX.done) {
+                this.x += this.#deltaX.next();
+            } else if (!this.#deltaY.done) {
+                this.y += this.#deltaY.next();
+            }
+            if (this.#atTarget) {
+                this.#deltas = this.#path.pop();
+            }
+        }
+
+        set #deltas(point: Point | undefined) {
+            const {x = this.x, y = this.y} = point ?? {x: this.x, y: this.y};
+            this.lookAt({x, y});
+            this.#deltaX = Delta.of(this.x - x, this.#speed);
+            this.#deltaY = Delta.of(this.y - y, this.#speed);
+        }
+
+        get #notThereYet(): boolean {
+            return !this.#atTarget;
+        }
+
+        get #atTarget() {
+            return this.#deltaX.done && this.#deltaY.done;
+        }
+
+        #satisfiesMoving(arg: any): arg is MovingState {
+            return typeof arg.x === 'number' && typeof arg.y === 'number'
+                && (arg.direction === undefined || typeof arg.direction === 'string')
+                && (arg.speed === undefined || typeof arg.speed === 'number');
+        }
+    };
+}
+
+class Delta {
+    static of(diff: number, increment: number = 1): Delta {
+        return diff > 0 ? new Delta(diff, -1, increment) : new Delta(diff, 1, increment);
+    }
+
+    #diff: number;
+    readonly #change: number;
+    readonly #sign: -1 | 1;
+
+    private constructor(diff: number, sign: -1 | 1, change: number = 1) {
+        this.#diff = diff;
+        this.#change = change;
+        this.#sign = sign;
+    }
+
+    next(): number {
+        const newDelta: number = this.#diff + this.#sign * this.#change;
+        if (this.#crossedZero(newDelta)) {
+            this.#diff = 0;
+            return this.#change - this.#sign * newDelta;
+        }
+        this.#diff = newDelta;
+        return this.#change;
+    }
+
+    get done(): boolean {
+        return this.#diff === 0;
+    }
+
+    #crossedZero(newDelta: number): boolean {
+        return this.#sign * newDelta > 0;
+    }
+}
+
+type Moving = {
+    get inMove(): boolean;
+    get currentDirection(): Direction;
+    lookAt(point: Point): void;
+    // todo: events?
+    follow(path: Point[]): void;
+}
+
+type MovingState = Point & {
+    direction?: Direction;
+    speed?: number;
+}
+
+type Direction = 'N' | 'E' | 'S' | 'W';
+
+// type DiagonalDirection = 'NE' | 'NW' | 'SE' | 'SW';
