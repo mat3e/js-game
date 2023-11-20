@@ -230,18 +230,3 @@ describe('Moving & Interacting', () => {
     it('interacts after moving', () => {
     });
 });
-
-/*test('negative delta returns until target', () => {
-    const dx = Delta.of(1 - 10, 5);
-    expect(dx.next).toBe(5);
-    expect(dx.next).toBe(4);
-    expect(dx.done).toBe(true);
-});
-
-test('positive delta returns until target', () => {
-    const dx = Delta.of(14 - 1, 5);
-    expect(dx.next).toBe(5);
-    expect(dx.next).toBe(5);
-    expect(dx.next).toBe(3);
-    expect(dx.done).toBe(true);
-});*/
