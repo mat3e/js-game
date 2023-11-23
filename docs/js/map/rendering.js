@@ -4,7 +4,10 @@ class Positioned {
     /** Top pixel. */
     y;
     constructor(...args) {
-        const { x = NaN, y = NaN } = args.filter(this.#satisfiesPositioned)[0] ?? {};
+        if (!this.#satisfiesPositioned(args[0])) {
+            throw Error(`Positioned object must be initialized with object containing x and y. Provided ${JSON.stringify(args)}`);
+        }
+        const { x = NaN, y = NaN } = args[0];
         this.x = x;
         this.y = y;
     }
@@ -20,7 +23,7 @@ class Positioned {
 }
 const DEFAULT_PX = 32;
 export function interacting(Base) {
-    return class extends (Base ?? Positioned) {
+    return class InteractingImpl extends (Base ?? Positioned) {
         x;
         y;
         offsetX;
@@ -30,8 +33,11 @@ export function interacting(Base) {
         wrappingWidth;
         wrappingHeight;
         constructor(...args) {
-            super(args);
-            const { x = NaN, y = NaN, width = DEFAULT_PX, height = DEFAULT_PX, inParent } = args.filter(this.#satisfiesInteracting)[0] ?? {};
+            super(...args);
+            if (!this.#satisfiesInteracting(args[0])) {
+                throw Error(`Interacting object must be initialized with object containing x, y, width and height. Provided ${JSON.stringify(args)}`);
+            }
+            const { x = NaN, y = NaN, width = DEFAULT_PX, height = DEFAULT_PX, inParent } = args[0];
             this.x = x;
             this.y = y;
             this.width = width;
@@ -65,7 +71,7 @@ export function interacting(Base) {
     };
 }
 export function moving(Base) {
-    return class extends (Base ?? Positioned) {
+    return class MovingImpl extends (Base ?? Positioned) {
         x;
         y;
         #direction;
@@ -75,8 +81,11 @@ export function moving(Base) {
         #moving = false;
         #speed;
         constructor(...args) {
-            super(args);
-            const { x = NaN, y = NaN, direction = 'S', speed = 1 } = args.filter(this.#satisfiesMoving)[0] ?? {};
+            super(...args);
+            if (!this.#satisfiesMoving(args[0])) {
+                throw Error(`Moving object must be initialized with object containing x, y, direction and speed. Provided ${JSON.stringify(args)}`);
+            }
+            const { x = NaN, y = NaN, direction = 'S', speed = 1 } = args[0];
             [this.x, this.y, this.#direction, this.#speed] = [x, y, direction, speed];
         }
         get currentDirection() {
@@ -176,4 +185,3 @@ class Delta {
         return this.#sign * newDelta > 0;
     }
 }
-// type DiagonalDirection = 'NE' | 'NW' | 'SE' | 'SW';

@@ -222,11 +222,45 @@ describe('Moving', () => {
         });
 
         it('goes through all the points', () => {
+            // given
+            const tested = new (moving())({x: 0, y: 0, speed: 4});
+
+            // when
+            tested.follow([{x: 32, y: 0}, {x: 32, y: 32}, {x: 64, y: 64}]);
+            let iterations = 0;
+            while (tested.inMove) {
+                tested.next();
+                ++iterations;
+                switch (true) {
+                    case iterations === 8:
+                        expect(tested.x).toBe(32);
+                        expect(tested.y).toBe(0);
+                        break;
+                    case iterations === 16:
+                        expect(tested.x).toBe(32);
+                        expect(tested.y).toBe(32);
+                        break;
+                    case iterations === 24:
+                        expect(tested.x).toBe(64);
+                        expect(tested.y).toBe(32);
+                        break;
+                }
+            }
+
+            // then
+            expect(tested.y).toBe(64);
+            expect(tested.x).toBe(64);
+            expect(iterations).toBe(32);
         });
     });
 });
 
 describe('Moving & Interacting', () => {
     it('interacts after moving', () => {
+        // given
+        const obstacle = new (interacting())({x: 8, y: 1, width: 10, height: 4});
+        const tested = new (moving(interacting()))({x: 0, y: 0, width: 1, height: 1});
+
+        expect(obstacle).not.toBe(tested);
     });
 });

@@ -13,8 +13,11 @@ class Positioned implements WithFrames {
     /** Top pixel. */
     readonly y: number;
 
-    protected constructor(...args: any[]) {
-        const {x = NaN, y = NaN} = args.filter(this.#satisfiesPositioned)[0] ?? {};
+    constructor(...args: any[]) {
+        if (!this.#satisfiesPositioned(args[0])) {
+            throw Error(`Positioned object must be initialized with object containing x and y. Provided ${JSON.stringify(args)}`);
+        }
+        const {x = NaN, y = NaN} = args[0];
         this.x = x;
         this.y = y;
     }
@@ -34,8 +37,10 @@ class Positioned implements WithFrames {
 
 const DEFAULT_PX = 32;
 
-export function interacting<TBase extends typeof Positioned>(Base?: TBase): new (state: InteractingState) => (Interacting & Positioned) {
-    return class extends (Base ?? Positioned) implements Interacting {
+export function interacting(): new (state: InteractingState) => (Interacting & Positioned);
+export function interacting<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<InteractingState, TBase>) => (Interacting & TBase);
+export function interacting<TBase extends typeof Positioned>(Base?: TBase) {
+    return class InteractingImpl extends (Base ?? Positioned) implements Interacting {
         override readonly x: number;
         override readonly y: number;
         private readonly offsetX: number;
@@ -46,14 +51,17 @@ export function interacting<TBase extends typeof Positioned>(Base?: TBase): new 
         private readonly wrappingHeight: number;
 
         constructor(...args: any[]) {
-            super(args);
+            super(...args);
+            if (!this.#satisfiesInteracting(args[0])) {
+                throw Error(`Interacting object must be initialized with object containing x, y, width and height. Provided ${JSON.stringify(args)}`);
+            }
             const {
                 x = NaN,
                 y = NaN,
                 width = DEFAULT_PX,
                 height = DEFAULT_PX,
                 inParent
-            } = args.filter(this.#satisfiesInteracting)[0] ?? {};
+            } = args[0];
             this.x = x;
             this.y = y;
             this.width = width;
@@ -110,8 +118,10 @@ type TwoDimensional = {
     height: number;
 }
 
-export function moving<TBase extends typeof Positioned>(Base?: TBase): new (state: MovingState) => (Moving & Positioned) {
-    return class extends (Base ?? Positioned) implements Moving {
+export function moving(): new (state: MovingState) => (Moving & Positioned);
+export function moving<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<MovingState, TBase>) => (Moving & TBase);
+export function moving<TBase extends typeof Positioned>(Base?: TBase) {
+    return class MovingImpl extends (Base ?? Positioned) implements Moving {
         override x: number;
         override y: number;
         #direction: Direction;
@@ -122,13 +132,16 @@ export function moving<TBase extends typeof Positioned>(Base?: TBase): new (stat
         #speed: number;
 
         constructor(...args: any[]) {
-            super(args);
+            super(...args);
+            if (!this.#satisfiesMoving(args[0])) {
+                throw Error(`Moving object must be initialized with object containing x, y, direction and speed. Provided ${JSON.stringify(args)}`);
+            }
             const {
                 x = NaN,
                 y = NaN,
                 direction = 'S',
                 speed = 1
-            } = args.filter(this.#satisfiesMoving)[0] ?? {};
+            } = args[0];
             [this.x, this.y, this.#direction, this.#speed] = [x, y, direction, speed];
         }
 
@@ -260,3 +273,9 @@ type MovingState = Point & {
 type Direction = 'N' | 'E' | 'S' | 'W';
 
 // type DiagonalDirection = 'NE' | 'NW' | 'SE' | 'SW';
+
+/** Assumes state is always the first argument. */
+type MixinConstructorArgs<NewStateType, SuperClass extends abstract new (...args: any) => any>
+    = [NewStateType & ConstructorParameters<SuperClass>[0], ...Tail<ConstructorParameters<SuperClass>>];
+
+type Tail<T extends any[]> = T extends [unknown, ...infer R] ? R : never;
