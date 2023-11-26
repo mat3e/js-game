@@ -256,11 +256,30 @@ describe('Moving', () => {
 });
 
 describe('Moving & Interacting', () => {
+    function doFollow(tested: InstanceType<ReturnType<typeof moving>>, path: Point[]) {
+        tested.follow(path);
+        while (tested.inMove) {
+            tested.next();
+        }
+    }
+
     it('interacts after moving', () => {
         // given
         const obstacle = new (interacting())({x: 8, y: 1, width: 10, height: 4});
         const tested = new (moving(interacting()))({x: 0, y: 0, width: 1, height: 1});
 
-        expect(obstacle).not.toBe(tested);
+        expect(tested.collidesWith(obstacle)).toBe(false);
+
+        // when
+        doFollow(tested, [{x: 10, y: 3}]);
+
+        // then
+        expect(tested.collidesWith(obstacle)).toBe(true);
+
+        // when
+        doFollow(tested, [{x: 19, y: 6}]);
+
+        // then
+        expect(obstacle.collidesWith(tested)).toBe(false);
     });
 });

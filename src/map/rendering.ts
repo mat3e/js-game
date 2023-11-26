@@ -38,7 +38,7 @@ class Positioned implements WithFrames {
 const DEFAULT_PX = 32;
 
 export function interacting(): new (state: InteractingState) => (Interacting & Positioned);
-export function interacting<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<InteractingState, TBase>) => (Interacting & TBase);
+export function interacting<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<InteractingState, TBase>) => (Interacting & InstanceType<TBase>);
 export function interacting<TBase extends typeof Positioned>(Base?: TBase) {
     return class InteractingImpl extends (Base ?? Positioned) implements Interacting {
         override readonly x: number;
@@ -103,23 +103,23 @@ export function interacting<TBase extends typeof Positioned>(Base?: TBase) {
 type Interacting = {
     contains(x: number, y: number, options?: InteractingOptions): boolean;
     collidesWith(another: Interacting): boolean;
-}
+};
 
 type InteractingOptions = {
     strict?: boolean;
-}
+};
 
 type InteractingState = Point & TwoDimensional & {
     inParent?: TwoDimensional;
-}
+};
 
 type TwoDimensional = {
     width: number;
     height: number;
-}
+};
 
 export function moving(): new (state: MovingState) => (Moving & Positioned);
-export function moving<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<MovingState, TBase>) => (Moving & TBase);
+export function moving<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<MovingState, TBase>) => (Moving & InstanceType<TBase>);
 export function moving<TBase extends typeof Positioned>(Base?: TBase) {
     return class MovingImpl extends (Base ?? Positioned) implements Moving {
         override x: number;
@@ -263,12 +263,12 @@ type Moving = {
     lookAt(point: Point): void;
     // todo: events?
     follow(path: Point[]): void;
-}
+};
 
 type MovingState = Point & {
     direction?: Direction;
     speed?: number;
-}
+};
 
 type Direction = 'N' | 'E' | 'S' | 'W';
 
