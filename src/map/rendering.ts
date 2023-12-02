@@ -60,13 +60,13 @@ export function interacting<TBase extends typeof Positioned>(Base?: TBase) {
                 y = NaN,
                 width = DEFAULT_PX,
                 height = DEFAULT_PX,
-                inParent
+                wrapping
             } = args[0];
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
-            [this.wrappingWidth, this.wrappingHeight] = inParent ? [inParent.width, inParent.height] : [width, height];
+            [this.wrappingWidth, this.wrappingHeight] = wrapping ? [wrapping.width, wrapping.height] : [width, height];
             [this.offsetX = 0, this.offsetY = 0] = [this.wrappingWidth - width, this.wrappingHeight - height].map(value => value / 2 | 0);
         }
 
@@ -95,7 +95,7 @@ export function interacting<TBase extends typeof Positioned>(Base?: TBase) {
         #satisfiesInteracting(arg: any): arg is InteractingState {
             return typeof arg.x === 'number' && typeof arg.y === 'number'
                 && typeof arg.width === 'number' && typeof arg.height === 'number'
-                && (arg.inParent === undefined || typeof arg.inParent.width === 'number' && typeof arg.inParent.height === 'number');
+                && (arg.wrapping === undefined || typeof arg.wrapping.width === 'number' && typeof arg.wrapping.height === 'number');
         }
     }
 }
@@ -110,7 +110,7 @@ type InteractingOptions = {
 };
 
 type InteractingState = Point & TwoDimensional & {
-    inParent?: TwoDimensional;
+    wrapping?: TwoDimensional;
 };
 
 type TwoDimensional = {

@@ -10,7 +10,7 @@ describe('Interacting', () => {
                 y: 0,
                 width: 1,
                 height: 1,
-                inParent: {
+                wrapping: {
                     width: 10,
                     height: 10
                 }
@@ -32,7 +32,7 @@ describe('Interacting', () => {
                 y: 0,
                 width: 1,
                 height: 1,
-                inParent: {
+                wrapping: {
                     width: 10,
                     height: 10
                 }
@@ -65,7 +65,7 @@ describe('Interacting', () => {
         ${10} | ${3}
         `('recognizes collision for each corner (top-left: $x x $y)', ({x, y}) => {
             // given
-            const first = new (interacting())({x, y, width: 10, height: 3, inParent: {width: 100, height: 100}});
+            const first = new (interacting())({x, y, width: 10, height: 3, wrapping: {width: 100, height: 100}});
             const second = new (interacting())({x: 8, y: 1, width: 10, height: 4});
 
             // when
