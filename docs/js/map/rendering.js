@@ -70,29 +70,19 @@ export function interacting(Base) {
         }
     };
 }
-export function moving(Base) {
-    return class MovingImpl extends (Base ?? Positioned) {
-        x;
-        y;
-        #direction;
-        #path = [];
-        #deltaX = Delta.of(0);
-        #deltaY = Delta.of(0);
-        #moving = false;
-        #speed;
+function rotating(Base) {
+    const DefinedBase = Base ?? Positioned;
+    if (alreadyRotating(DefinedBase)) {
+        // already mixed in
+        return DefinedBase;
+    }
+    return class RotatingImpl extends DefinedBase {
+        #direction = 'S';
         constructor(...args) {
             super(...args);
-            if (!this.#satisfiesMoving(args[0])) {
-                throw Error(`Moving object must be initialized with object containing x, y, direction and speed. Provided ${JSON.stringify(args)}`);
+            if (typeof args[0].direction === 'string') {
+                this.#direction = args[0].direction;
             }
-            const { x = NaN, y = NaN, direction = 'S', speed = 1 } = args[0];
-            [this.x, this.y, this.#direction, this.#speed] = [x, y, direction, speed];
-        }
-        get currentDirection() {
-            return this.#direction;
-        }
-        get inMove() {
-            return this.#moving;
         }
         lookAt({ x = this.x, y = this.y } = { x: this.x, y: this.y }) {
             switch (true) {
@@ -109,6 +99,31 @@ export function moving(Base) {
                     this.#direction = 'S';
                     break;
             }
+        }
+        get currentDirection() {
+            return this.#direction;
+        }
+    };
+}
+export function moving(Base) {
+    return class MovingImpl extends rotating(Base ?? Positioned) {
+        x;
+        y;
+        #path = [];
+        #deltaX = Delta.of(0);
+        #deltaY = Delta.of(0);
+        #moving = false;
+        #speed;
+        constructor(...args) {
+            super(...args);
+            if (!this.#satisfiesMoving(args[0])) {
+                throw Error(`Moving object must be initialized with object containing x, y and speed. Provided ${JSON.stringify(args)}`);
+            }
+            const { x = NaN, y = NaN, speed = 1 } = args[0];
+            [this.x, this.y, this.#speed] = [x, y, speed];
+        }
+        get inMove() {
+            return this.#moving;
         }
         follow(path) {
             this.#path = path.reverse();
@@ -152,7 +167,6 @@ export function moving(Base) {
         }
         #satisfiesMoving(arg) {
             return typeof arg.x === 'number' && typeof arg.y === 'number'
-                && (arg.direction === undefined || typeof arg.direction === 'string')
                 && (arg.speed === undefined || typeof arg.speed === 'number');
         }
     };
@@ -184,4 +198,11 @@ class Delta {
     #crossedZero(newDelta) {
         return this.#sign * newDelta > 0;
     }
+}
+function alreadyRotating(Class) {
+    return !!(Class.prototype.lookAt);
+}
+export function animated(Base) {
+    return class AnimatedImpl extends rotating(Base ?? Positioned) {
+    };
 }

@@ -1,5 +1,5 @@
 import {Point} from "./pathfinding/index";
-import {interacting, moving} from "./rendering";
+import {animated, interacting, moving} from "./rendering";
 
 describe('Interacting', () => {
     describe('contains', () => {
@@ -281,5 +281,39 @@ describe('Moving & Interacting', () => {
 
         // then
         expect(obstacle.collidesWith(tested)).toBe(false);
+    });
+});
+
+describe('Animated', () => {
+    describe('lookAt', () => {
+        it.each`
+        point           | expectedDirection
+        ${{x: 2, y: 1}} | ${'E'}
+        ${{x: 0, y: 1}} | ${'W'}
+        ${{x: 1, y: 0}} | ${'N'}
+        ${{x: 1, y: 2}} | ${'S'}
+        ${{x: 2, y: 2}} | ${'E'}
+        ${{x: 2, y: 0}} | ${'E'}
+        ${{x: 0, y: 0}} | ${'W'}
+        ${{x: 0, y: 2}} | ${'W'}
+        `('rotates to point $point => $expectedDirection', ({point, expectedDirection}: {
+            point: Point,
+            expectedDirection: string
+        }) => {
+            // given
+            const tested = new (animated())({x: 1, y: 1});
+            const doubled = new (animated(moving()))({x: 1, y: 1});
+            const otherDoubled = new (moving(animated()))({x: 1, y: 1});
+
+            // when
+            tested.lookAt(point);
+            doubled.lookAt(point);
+            otherDoubled.lookAt(point);
+
+            // then
+            expect(tested.currentDirection).toBe(expectedDirection);
+            expect(doubled.currentDirection).toBe(expectedDirection);
+            expect(otherDoubled.currentDirection).toBe(expectedDirection);
+        });
     });
 });

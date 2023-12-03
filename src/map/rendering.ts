@@ -118,39 +118,20 @@ type TwoDimensional = {
     height: number;
 };
 
-export function moving(): new (state: MovingState) => (Moving & Positioned);
-export function moving<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<MovingState, TBase>) => (Moving & InstanceType<TBase>);
-export function moving<TBase extends typeof Positioned>(Base?: TBase) {
-    return class MovingImpl extends (Base ?? Positioned) implements Moving {
-        override x: number;
-        override y: number;
-        #direction: Direction;
-        #path: Point[] = [];
-        #deltaX = Delta.of(0);
-        #deltaY = Delta.of(0);
-        #moving: boolean = false;
-        #speed: number;
+function rotating<TBase extends typeof Positioned>(Base?: TBase): new (...args: any[]) => Rotating & Positioned {
+    const DefinedBase = Base ?? Positioned;
+    if (alreadyRotating(DefinedBase)) {
+        // already mixed in
+        return DefinedBase;
+    }
+    return class RotatingImpl extends DefinedBase implements Rotating {
+        #direction: Direction = 'S';
 
         constructor(...args: any[]) {
             super(...args);
-            if (!this.#satisfiesMoving(args[0])) {
-                throw Error(`Moving object must be initialized with object containing x, y, direction and speed. Provided ${JSON.stringify(args)}`);
+            if (typeof args[0].direction === 'string') {
+                this.#direction = args[0].direction;
             }
-            const {
-                x = NaN,
-                y = NaN,
-                direction = 'S',
-                speed = 1
-            } = args[0];
-            [this.x, this.y, this.#direction, this.#speed] = [x, y, direction, speed];
-        }
-
-        get currentDirection(): Direction {
-            return this.#direction;
-        }
-
-        get inMove(): boolean {
-            return this.#moving;
         }
 
         lookAt({x = this.x, y = this.y}: Point = {x: this.x, y: this.y}): void {
@@ -168,6 +149,41 @@ export function moving<TBase extends typeof Positioned>(Base?: TBase) {
                     this.#direction = 'S';
                     break;
             }
+        }
+
+        get currentDirection(): Direction {
+            return this.#direction;
+        }
+    }
+}
+
+export function moving(): new (state: MovingState) => (Moving & Positioned);
+export function moving<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<MovingState, TBase>) => (Moving & InstanceType<TBase>);
+export function moving<TBase extends typeof Positioned>(Base?: TBase) {
+    return class MovingImpl extends rotating(Base ?? Positioned) implements Moving {
+        override x: number;
+        override y: number;
+        #path: Point[] = [];
+        #deltaX = Delta.of(0);
+        #deltaY = Delta.of(0);
+        #moving: boolean = false;
+        #speed: number;
+
+        constructor(...args: any[]) {
+            super(...args);
+            if (!this.#satisfiesMoving(args[0])) {
+                throw Error(`Moving object must be initialized with object containing x, y and speed. Provided ${JSON.stringify(args)}`);
+            }
+            const {
+                x = NaN,
+                y = NaN,
+                speed = 1
+            } = args[0];
+            [this.x, this.y, this.#speed] = [x, y, speed];
+        }
+
+        get inMove(): boolean {
+            return this.#moving;
         }
 
         follow(path: Point[]): void {
@@ -217,7 +233,6 @@ export function moving<TBase extends typeof Positioned>(Base?: TBase) {
 
         #satisfiesMoving(arg: any): arg is MovingState {
             return typeof arg.x === 'number' && typeof arg.y === 'number'
-                && (arg.direction === undefined || typeof arg.direction === 'string')
                 && (arg.speed === undefined || typeof arg.speed === 'number');
         }
     };
@@ -263,8 +278,7 @@ type Moving = Rotating & {
     follow(path: Point[]): void;
 };
 
-type MovingState = Point & {
-    direction?: Direction;
+type MovingState = Point & RotatingState & {
     speed?: number;
 };
 
@@ -273,9 +287,28 @@ type Rotating = {
     get currentDirection(): Direction;
 };
 
+function alreadyRotating<TBase extends typeof Positioned>(Class: typeof Positioned): Class is new (...args: any[]) => (Rotating & InstanceType<TBase>) {
+    return !!((Class.prototype as unknown as Rotating).lookAt);
+}
+
+type RotatingState = {
+    direction?: Direction;
+};
+
 type Direction = 'N' | 'E' | 'S' | 'W';
 
 // type DiagonalDirection = 'NE' | 'NW' | 'SE' | 'SW';
+
+export function animated(): new (state: Point) => (Moving & Positioned);
+export function animated<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<AnimatedState, TBase>) => (Animated & InstanceType<TBase>);
+export function animated<TBase extends typeof Positioned>(Base?: TBase) {
+    return class AnimatedImpl extends rotating(Base ?? Positioned) implements Animated {
+    }
+}
+
+type Animated = Rotating & {};
+
+type AnimatedState = {};
 
 /** Assumes state is always the first argument. */
 type MixinConstructorArgs<NewStateType, SuperClass extends abstract new (...args: any) => any>
