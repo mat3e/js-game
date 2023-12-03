@@ -257,10 +257,8 @@ class Delta {
     }
 }
 
-type Moving = {
+type Moving = Rotating & {
     get inMove(): boolean;
-    get currentDirection(): Direction;
-    lookAt(point: Point): void;
     // todo: events?
     follow(path: Point[]): void;
 };
@@ -268,6 +266,11 @@ type Moving = {
 type MovingState = Point & {
     direction?: Direction;
     speed?: number;
+};
+
+type Rotating = {
+    lookAt(point: Point): void;
+    get currentDirection(): Direction;
 };
 
 type Direction = 'N' | 'E' | 'S' | 'W';
