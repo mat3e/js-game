@@ -4,6 +4,7 @@ class Positioned {
     x;
     /** Top pixel. */
     y;
+    #state = 'idle';
     constructor(...args) {
         if (!this.#satisfiesPositioned(args[0])) {
             throw Error(`Positioned object must be initialized with object containing x and y. Provided ${JSON.stringify(args)}`);
@@ -14,6 +15,12 @@ class Positioned {
     }
     next() {
         // no state changes
+    }
+    set state(state) {
+        this.#state = state;
+    }
+    get state() {
+        return this.#state;
     }
     get valid() {
         return !isNaN(this.x) && !isNaN(this.y);
@@ -50,18 +57,35 @@ export function interacting(Base) {
             const [myX = 0, myY = 0, myWidth = DEFAULT_PX, myHeight = DEFAULT_PX] = strict
                 ? [this.x + this.offsetX, this.y + this.offsetY, this.width, this.height]
                 : [this.x, this.y, this.wrappingWidth, this.wrappingHeight];
-            return x >= myX && x < myX + myWidth && y >= myY && y < myY + myHeight;
+            const result = x >= myX && x < myX + myWidth && y >= myY && y < myY + myHeight;
+            if (result) {
+                this.state = 'pointed';
+            }
+            return result;
         }
         collidesWith(another) {
             if (another.oneWayCollidesWith === undefined) {
-                return another.collidesWith(this);
+                const resultFromOtherImpl = another.collidesWith(this);
+                this.#collidingState(resultFromOtherImpl, another);
+                return resultFromOtherImpl;
             }
-            return this.oneWayCollidesWith(another) || another.oneWayCollidesWith(this);
+            const result = this.oneWayCollidesWith(another) || another.oneWayCollidesWith(this);
+            this.#collidingState(result, another);
+            return result;
         }
         oneWayCollidesWith(another) {
-            return this.#corners().some(([x = Infinity, y = Infinity]) => another.contains(x, y, { strict: true }));
+            return this.#corners.some(([x = Infinity, y = Infinity]) => another.contains(x, y, { strict: true }));
         }
-        #corners() {
+        #collidingState(isCollided, another) {
+            if (isCollided) {
+                this.state = 'collided';
+                const tsAnother = another;
+                if (tsAnother.state) {
+                    tsAnother.state = 'collided';
+                }
+            }
+        }
+        get #corners() {
             return [[this.x, this.y], [this.x + this.width, this.y], [this.x + this.width, this.y + this.height], [this.x, this.y + this.height]];
         }
         #satisfiesInteracting(arg) {
@@ -113,7 +137,6 @@ export function moving(Base) {
         #path = [];
         #deltaX = Delta.of(0);
         #deltaY = Delta.of(0);
-        #moving = false;
         #speed;
         constructor(...args) {
             super(...args);
@@ -124,23 +147,23 @@ export function moving(Base) {
             [this.x, this.y, this.#speed] = [x, y, speed];
         }
         get inMove() {
-            return this.#moving;
+            return this.state === 'moving';
         }
         follow(path) {
             this.#path = path.reverse();
             this.#deltas = this.#path.pop();
-            this.#moving = true;
+            this.state = 'moving';
         }
         next() {
             super.next();
-            if (!this.#moving) {
+            if (this.state !== 'moving') {
                 return;
             }
             if (this.#notThereYet) {
                 this.#move();
             }
             if (this.#atTarget) {
-                this.#moving = false;
+                this.state = 'idle';
             }
         }
         #move() {
