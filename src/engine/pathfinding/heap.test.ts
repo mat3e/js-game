@@ -96,5 +96,17 @@ describe('BinaryHeap', () => {
 
         // then
         expect(heap.pop()).toHaveProperty('value', element.value);
+
+        // when
+        heap.push(element);
+        // and
+        element.cost = 11;
+        // and
+        heap.update(element);
+
+        // then
+        expect(heap.pop()).toHaveProperty('value', '10');
+        // and
+        expect(heap.pop()).toHaveProperty('value', element.value);
     });
 });
