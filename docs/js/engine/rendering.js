@@ -1,3 +1,4 @@
+import { getImage, submitImage } from "./assetmanagement";
 class Positioned {
     /** Left pixel. */
     x;
@@ -201,6 +202,43 @@ class Delta {
 }
 function alreadyRotating(Class) {
     return !!(Class.prototype.lookAt);
+}
+export function renderable(Base) {
+    return class RenderableImpl extends (Base ?? Positioned) {
+        x;
+        y;
+        width;
+        height;
+        context;
+        sprite;
+        constructor(...args) {
+            super(...args);
+            if (!this.#satisfiesRenderable(args[0])) {
+                throw Error(`Renderable object must be initialized with object containing x, y, width, height, context and sprite. Provided ${JSON.stringify(args)}`);
+            }
+            const { x = NaN, y = NaN, width = DEFAULT_PX, height = DEFAULT_PX, context, sprite } = args[0];
+            [this.x, this.y, this.width, this.height, this.context] = [x, y, width, height, context];
+            this.sprite = {
+                src: sprite.src,
+                x: sprite.x ?? 0,
+                y: sprite.y ?? 0,
+                width: sprite.width ?? width,
+                height: sprite.height ?? height,
+            };
+            submitImage(this.sprite.src);
+        }
+        render() {
+            this.context.drawImage(getImage(this.sprite.src), this.sprite.x, this.sprite.y, this.sprite.width, this.sprite.height, this.x, this.y, this.width, this.height);
+        }
+        #satisfiesRenderable(arg) {
+            return typeof arg.x === 'number' && typeof arg.y === 'number'
+                && typeof arg.width === 'number' && typeof arg.height === 'number'
+                && typeof arg.context === 'object'
+                && (typeof arg.sprite === 'object' && typeof arg.sprite.src === 'string'
+                    && (arg.sprite.x === undefined || typeof arg.sprite.x === 'number') && (arg.sprite.y === undefined || typeof arg.sprite.y === 'number')
+                    && (arg.sprite.width === undefined || typeof arg.sprite.width === 'number') && (arg.sprite.height === undefined || typeof arg.sprite.height === 'number'));
+        }
+    };
 }
 export function animated(Base) {
     return class AnimatedImpl extends rotating(Base ?? Positioned) {

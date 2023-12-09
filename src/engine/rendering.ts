@@ -1,9 +1,10 @@
 import {Point} from "./pathfinding/index";
+import {getImage, submitImage} from "./assetmanagement";
 
 /**
  * Allows transiting to the next frame.
  */
-interface WithFrames {
+type WithFrames = {
     next(): void;
 }
 
@@ -272,7 +273,7 @@ class Delta {
     }
 }
 
-type Moving = Rotating & {
+type Moving = Rotating & WithFrames & {
     get inMove(): boolean;
     // todo: events?
     follow(path: Point[]): void;
@@ -299,7 +300,68 @@ type Direction = 'N' | 'E' | 'S' | 'W';
 
 // type DiagonalDirection = 'NE' | 'NW' | 'SE' | 'SW';
 
-export function animated(): new (state: Point) => (Moving & Positioned);
+export function renderable(): new (state: RenderableState) => (Renderable & Positioned);
+export function renderable<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<RenderableState, TBase>) => (Renderable & InstanceType<TBase>);
+export function renderable<TBase extends typeof Positioned>(Base?: TBase) {
+    return class RenderableImpl extends (Base ?? Positioned) implements Renderable {
+        override readonly x: number;
+        override readonly y: number;
+        private readonly width: number;
+        private readonly height: number;
+        private readonly context: CanvasDrawImage;
+        private readonly sprite: Required<RenderableState['sprite']>;
+
+        constructor(...args: any[]) {
+            super(...args);
+            if (!this.#satisfiesRenderable(args[0])) {
+                throw Error(`Renderable object must be initialized with object containing x, y, width, height, context and sprite. Provided ${JSON.stringify(args)}`);
+            }
+            const {
+                x = NaN,
+                y = NaN,
+                width = DEFAULT_PX,
+                height = DEFAULT_PX,
+                context,
+                sprite
+            } = args[0];
+            [this.x, this.y, this.width, this.height, this.context] = [x, y, width, height, context];
+            this.sprite = {
+                src: sprite.src,
+                x: sprite.x ?? 0,
+                y: sprite.y ?? 0,
+                width: sprite.width ?? width,
+                height: sprite.height ?? height,
+            };
+            submitImage(this.sprite.src);
+        }
+
+        render(): void {
+            this.context.drawImage(getImage(this.sprite.src), this.sprite.x, this.sprite.y, this.sprite.width, this.sprite.height, this.x, this.y, this.width, this.height);
+        }
+
+        #satisfiesRenderable(arg: any): arg is RenderableState {
+            return typeof arg.x === 'number' && typeof arg.y === 'number'
+                && typeof arg.width === 'number' && typeof arg.height === 'number'
+                && typeof arg.context === 'object'
+                && (typeof arg.sprite === 'object' && typeof arg.sprite.src === 'string'
+                    && (arg.sprite.x === undefined || typeof arg.sprite.x === 'number') && (arg.sprite.y === undefined || typeof arg.sprite.y === 'number')
+                    && (arg.sprite.width === undefined || typeof arg.sprite.width === 'number') && (arg.sprite.height === undefined || typeof arg.sprite.height === 'number'));
+        }
+    }
+}
+
+type Renderable = {
+    render(): void;
+};
+
+type RenderableState = Point & TwoDimensional & {
+    context: CanvasDrawImage;
+    sprite: Partial<Point> & Partial<TwoDimensional> & {
+        src: string;
+    };
+};
+
+export function animated(): new (state: AnimatedState) => (Animated & Positioned);
 export function animated<TBase extends typeof Positioned>(Base: TBase): new (...args: MixinConstructorArgs<AnimatedState, TBase>) => (Animated & InstanceType<TBase>);
 export function animated<TBase extends typeof Positioned>(Base?: TBase) {
     return class AnimatedImpl extends rotating(Base ?? Positioned) implements Animated {
@@ -308,7 +370,7 @@ export function animated<TBase extends typeof Positioned>(Base?: TBase) {
 
 type Animated = Rotating & {};
 
-type AnimatedState = {};
+type AnimatedState = Point & {};
 
 /** Assumes state is always the first argument. */
 type MixinConstructorArgs<NewStateType, SuperClass extends abstract new (...args: any) => any>

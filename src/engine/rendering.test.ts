@@ -1,5 +1,6 @@
 import {Point} from "./pathfinding/index";
-import {animated, interacting, moving} from "./rendering";
+import {animated, interacting, moving, renderable} from "./rendering";
+import {loading} from "./assetmanagement";
 
 describe('Interacting', () => {
     describe('contains', () => {
@@ -281,6 +282,49 @@ describe('Moving & Interacting', () => {
 
         // then
         expect(obstacle.collidesWith(tested)).toBe(false);
+    });
+});
+
+describe('Renderable', () => {
+    const contextFake: CanvasDrawImage = {
+        drawImage: (...args: any[]) => {
+            if (args.length !== 9) {
+                throw new Error('Invalid call - all args need to be defined');
+            }
+            const typings = ['object', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number'];
+            args.forEach((arg, index) => {
+                if (typeof arg !== typings[index]) {
+                    throw new Error(`Invalid call - arg ${index} should be ${typings[index]}`);
+                }
+            });
+        },
+    };
+
+    const {objectContaining} = expect;
+
+    const src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+    it('renders with full canvas API', async () => {
+        // given
+        const spiedContextFake = jest.spyOn(contextFake, 'drawImage');
+        const tested = new (renderable())({
+            context: contextFake,
+            x: 32,
+            y: 32,
+            width: 1,
+            height: 1,
+            sprite: {src},
+        });
+
+        // when
+        await loading();
+        // and
+        tested.render();
+
+        // then
+        expect(spiedContextFake).toHaveBeenCalledTimes(1);
+        expect(spiedContextFake).toHaveBeenCalledWith(objectContaining({src}), 0, 0, 1, 1, 32, 32, 1, 1);
+        expect(spiedContextFake.mock.calls[0]![0]).toBeInstanceOf(HTMLImageElement);
     });
 });
 
