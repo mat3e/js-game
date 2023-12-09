@@ -107,6 +107,21 @@ describe('Interacting', () => {
             // then
             expect(result).toBe(false);
         });
+
+        it.each([true, false])('delegates to the other implementation', (resultFromOtherObject) => {
+            // given
+            const first = new (interacting())({x: 0, y: 0, width: 10, height: 3});
+            const second = {
+                contains: () => false,
+                collidesWith: () => resultFromOtherObject,
+            };
+
+            // when
+            const result = first.collidesWith(second);
+
+            // then
+            expect(result).toBe(resultFromOtherObject);
+        });
     });
 });
 
