@@ -8,11 +8,14 @@ type WithFrames = {
     next(): void;
 }
 
+type State = 'idle' | 'moving' | 'collided' | 'pointed';
+
 class Positioned implements WithFrames {
     /** Left pixel. */
     readonly x: number;
     /** Top pixel. */
     readonly y: number;
+    #state: State = 'idle';
 
     constructor(...args: any[]) {
         if (!this.#satisfiesPositioned(args[0])) {
@@ -25,6 +28,14 @@ class Positioned implements WithFrames {
 
     next(): void {
         // no state changes
+    }
+
+    protected set state(state: State) {
+        this.#state = state;
+    }
+
+    protected get state(): State {
+        return this.#state;
     }
 
     get valid(): boolean {
@@ -75,21 +86,39 @@ export function interacting<TBase extends typeof Positioned>(Base?: TBase) {
             const [myX = 0, myY = 0, myWidth = DEFAULT_PX, myHeight = DEFAULT_PX] = strict
                 ? [this.x + this.offsetX, this.y + this.offsetY, this.width, this.height]
                 : [this.x, this.y, this.wrappingWidth, this.wrappingHeight];
-            return x >= myX && x < myX + myWidth && y >= myY && y < myY + myHeight;
+            const result = x >= myX && x < myX + myWidth && y >= myY && y < myY + myHeight;
+            if (result) {
+                this.state = 'pointed';
+            }
+            return result;
         }
 
         collidesWith(another: Interacting): boolean {
             if ((another as this).oneWayCollidesWith === undefined) {
-                return another.collidesWith(this);
+                const resultFromOtherImpl = another.collidesWith(this);
+                this.#collidingState(resultFromOtherImpl, another);
+                return resultFromOtherImpl;
             }
-            return this.oneWayCollidesWith(another) || (another as this).oneWayCollidesWith(this);
+            const result = this.oneWayCollidesWith(another) || (another as this).oneWayCollidesWith(this);
+            this.#collidingState(result, another);
+            return result;
         }
 
         private oneWayCollidesWith(another: Interacting): boolean {
-            return this.#corners().some(([x = Infinity, y = Infinity]) => another.contains(x, y, {strict: true}));
+            return this.#corners.some(([x = Infinity, y = Infinity]) => another.contains(x, y, {strict: true}));
         }
 
-        #corners(): [[number, number], [number, number], [number, number], [number, number]] {
+        #collidingState(isCollided: boolean, another: Interacting) {
+            if (isCollided) {
+                this.state = 'collided';
+                const tsAnother = (another as this);
+                if (tsAnother.state) {
+                    tsAnother.state = 'collided';
+                }
+            }
+        }
+
+        get #corners(): [[number, number], [number, number], [number, number], [number, number]] {
             return [[this.x, this.y], [this.x + this.width, this.y], [this.x + this.width, this.y + this.height], [this.x, this.y + this.height]];
         }
 
@@ -167,7 +196,6 @@ export function moving<TBase extends typeof Positioned>(Base?: TBase) {
         #path: Point[] = [];
         #deltaX = Delta.of(0);
         #deltaY = Delta.of(0);
-        #moving: boolean = false;
         #speed: number;
 
         constructor(...args: any[]) {
@@ -184,25 +212,25 @@ export function moving<TBase extends typeof Positioned>(Base?: TBase) {
         }
 
         get inMove(): boolean {
-            return this.#moving;
+            return this.state === 'moving';
         }
 
         follow(path: Point[]): void {
             this.#path = path.reverse();
             this.#deltas = this.#path.pop();
-            this.#moving = true;
+            this.state = 'moving';
         }
 
         override next(): void {
             super.next();
-            if (!this.#moving) {
+            if (this.state !== 'moving') {
                 return;
             }
             if (this.#notThereYet) {
                 this.#move();
             }
             if (this.#atTarget) {
-                this.#moving = false;
+                this.state = 'idle';
             }
         }
 
